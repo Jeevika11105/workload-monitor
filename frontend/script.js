@@ -97,7 +97,7 @@ window.handleLogin = async function() {
     }
     
     try {
-        const result = await apiCall('/auth/login', 'POST', { email, password });
+        const result = await apiCall('/api/auth/login', 'POST', { email, password });
         authToken = result.token;
         currentUser = result.user;
         localStorage.setItem('authToken', authToken);
@@ -125,7 +125,7 @@ window.handleSignup = async function() {
     }
     
     try {
-        const result = await apiCall('/auth/signup', 'POST', { name, email, password });
+        const result = await apiCall('/api/auth/signup', 'POST', { name, email, password });
         authToken = result.token;
         currentUser = result.user;
         localStorage.setItem('authToken', authToken);
@@ -204,7 +204,7 @@ window.createTeam = async function() {
     }
     
     try {
-        const team = await apiCall('/teams', 'POST', { 
+        const team = await apiCall('/api/teams', 'POST', { 
             user_id: currentUser.id,
             name: teamName, 
             description: description 
@@ -236,7 +236,7 @@ window.joinTeam = async function() {
     }
     
     try {
-        const team = await apiCall('/teams/join', 'POST', { 
+        const team = await apiCall('/api/teams/join', 'POST', { 
             user_id: currentUser.id,
             join_code: joinCode 
         });
@@ -266,7 +266,7 @@ window.selectTeam = async function(teamId) {
 async function loadTeamData() {
     if (!currentTeamId) return;
     try {
-        currentTeam = await apiCall(`/teams/${currentTeamId}`, 'GET');
+        currentTeam = await apiCall(`/api/teams/${currentTeamId}`, 'GET');
         console.log('Team loaded:', currentTeam.name);
     } catch (error) {
         console.error('Error loading team:', error);
@@ -350,7 +350,7 @@ window.saveEdit = async function() {
     }
     
     try {
-        await apiCall(`/teams/${currentTeamId}/members/${editMemberId}`, 'PUT', { tasks: newTasks, hours: newHours });
+        await apiCall(`/api/teams/${currentTeamId}/members/${editMemberId}`, 'PUT', { tasks: newTasks, hours: newHours });
         await loadTeamData();
         updateDashboardUI();
         closeModal();
@@ -370,7 +370,7 @@ async function addMemberToTeam(name, tasks, hours) {
     const hoursNum = parseFloat(hours);
     
     try {
-        await apiCall(`/teams/${currentTeamId}/members`, 'POST', { name, tasks: tasksNum, hours: hoursNum });
+        await apiCall(`/api/teams/${currentTeamId}/members`, 'POST', { name, tasks: tasksNum, hours: hoursNum });
         await loadTeamData();
         updateDashboardUI();
         return true;
