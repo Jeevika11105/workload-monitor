@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Team Workload Monitor | Cloud Backend</title>
+    <link rel="stylesheet" href="stylef.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, arrayUnion, query, where, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBrzzsGlzPh2yT7Rb85DtLiNJt_HMo6VJ8",
+            authDomain: "cognitive-workload-management.firebaseapp.com",
+            projectId: "cognitive-workload-management",
+            storageBucket: "cognitive-workload-management.firebasestorage.app",
+            messagingSenderId: "1058870385378",
+            appId: "1:1058870385378:web:968b11ccffcab2b028dcbb",
+            measurementId: "G-QCWVWMTE5K"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        window.auth = auth;
+        window.db = db;
+        window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+        window.onAuthStateChanged = onAuthStateChanged;
+        window.signOut = signOut;
+        window.updateProfile = updateProfile;
+        window.collection = collection;
+        window.doc = doc;
+        window.setDoc = setDoc;
+        window.getDoc = getDoc;
+        window.getDocs = getDocs;
+        window.updateDoc = updateDoc;
+        window.arrayUnion = arrayUnion;
+        window.query = query;
+        window.where = where;
+        window.addDoc = addDoc;
+        window.deleteDoc = deleteDoc;
+        
+        console.log("Firebase Connected!");
+    </script>
+</head>
+<body>
+
+<!-- Auth Screen -->
+<div id="authScreen" class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="logo-icon">🧠</div>
+            <h2>AI Workload Monitor</h2>
+            <p>Cloud-based team workload management</p>
+        </div>
+        <div id="loginForm">
+            <div class="input-group">
+                <label><i class="fas fa-envelope"></i> Email Address</label>
+                <input type="email" id="loginEmail" placeholder="you@example.com">
+            </div>
+            <div class="input-group">
+                <label><i class="fas fa-lock"></i> Password</label>
+                <input type="password" id="loginPassword" placeholder="••••••••">
+            </div>
+            <button class="btn-primary" onclick="handleLogin()">
+                <i class="fas fa-sign-in-alt"></i> Sign In
+            </button>
+            <div class="switch-auth">
+                New user? <a onclick="showSignup()">Create Account</a>
+            </div>
+        </div>
+        <div id="signupForm" style="display: none;">
+            <div class="input-group">
+                <label><i class="fas fa-user"></i> Full Name</label>
+                <input type="text" id="signupName" placeholder="John Doe">
+            </div>
+            <div class="input-group">
+                <label><i class="fas fa-envelope"></i> Email Address</label>
+                <input type="email" id="signupEmail" placeholder="you@example.com">
+            </div>
+            <div class="input-group">
+                <label><i class="fas fa-lock"></i> Password</label>
+                <input type="password" id="signupPassword" placeholder="Minimum 6 characters">
+            </div>
+            <button class="btn-primary" onclick="handleSignup()">
+                <i class="fas fa-user-plus"></i> Create Account
+            </button>
+            <div class="switch-auth">
+                Already have an account? <a onclick="showLogin()">Sign In</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Team Selection Screen -->
+<div id="teamSelectScreen" style="display: none;" class="team-select-container">
+    <div class="team-select-card">
+        <div class="auth-header">
+            <div class="logo-icon">🤝</div>
+            <h2>Manage Teams</h2>
+            <p>Create a new team or join an existing one</p>
+        </div>
+        <div id="teamsList">
+            <div class="empty-state">Loading teams...</div>
+        </div>
+        
+        <div class="create-team-form">
+            <h3><i class="fas fa-plus-circle"></i> Create New Team</h3>
+            <div class="input-group">
+                <label>Team Name</label>
+                <input type="text" id="newTeamName" placeholder="e.g., Development Team">
+            </div>
+            <div class="input-group">
+                <label>Description (Optional)</label>
+                <input type="text" id="teamDescription" placeholder="What does this team do?">
+            </div>
+            <button class="btn-primary" onclick="createTeam()">
+                <i class="fas fa-plus"></i> Create Team
+            </button>
+        </div>
+        
+        <div class="join-team-form">
+            <h3><i class="fas fa-link"></i> Join Existing Team</h3>
+            <div class="input-group">
+                <label>Team Join Code</label>
+                <input type="text" id="joinTeamId" placeholder="Enter 6-digit code">
+                <small>Ask your team admin for the join code</small>
+            </div>
+            <button class="btn-secondary" onclick="joinTeam()">
+                <i class="fas fa-sign-in-alt"></i> Join Team
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Dashboard Screen -->
+<div id="dashboardScreen" style="display: none;">
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div>
+                <button onclick="goBack()" class="back-btn" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 40px; cursor: pointer; margin-bottom: 10px; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-arrow-left"></i> Back to Teams
+                </button>
+                <div class="header-title">
+                    <h2><i class="fas fa-chart-line"></i> Workload Intelligence Dashboard</h2>
+                    <p>AI-powered workload monitoring - Cloud Sync Enabled</p>
+                </div>
+            </div>
+            <div class="user-info">
+                <span class="team-badge" id="currentTeamName">Loading...</span>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <div class="grid-2col">
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Add Team Member</span>
+                </div>
+                <form id="memberForm">
+                    <div class="form-group">
+                        <label>Member Name *</label>
+                        <input type="text" id="memberName" required placeholder="e.g., John Smith">
+                    </div>
+                    <div class="form-group">
+                        <label>Tasks Completed (Last 7 Days) *</label>
+                        <input type="number" id="tasksCompleted" step="1" placeholder="e.g., 15" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Work Hours (Last 7 Days) *</label>
+                        <input type="number" id="workHours" step="0.5" placeholder="e.g., 40" required>
+                    </div>
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-brain"></i> Add Member & Calculate
+                    </button>
+                </form>
+                
+                <div class="team-stats">
+                    <div class="stat-box">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-label">Avg Workload</div>
+                        <div class="stat-number" id="avgWorkloadScore">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-icon">⚠️</div>
+                        <div class="stat-label">Overloaded</div>
+                        <div class="stat-number" id="overloadedCount">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-label">Team Size</div>
+                        <div class="stat-number" id="teamSizeCount">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Workload Distribution</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="workloadPieChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="workloadBarChart"></canvas>
+                </div>
+                <div id="imbalanceAlert" class="alert-box"></div>
+            </div>
+        </div>
+
+        <div class="card full-width-card">
+            <div class="card-title">
+                <i class="fas fa-table-list"></i>
+                <span>Team Member Workload Analysis</span>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Member</th><th>Tasks</th><th>Hours</th><th>Workload Score</th><th>Level</th><th>Status</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="teamTableBody">
+                        <tr><td colspan="7" class="empty-state-table">Loading members...<br>Add your first team member! 🚀</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-edit"></i> Edit Workload</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="input-group">
+            <label>Member Name</label>
+            <input type="text" id="editMemberName" readonly>
+        </div>
+        <div class="input-group">
+            <label>Tasks Completed (Last 7 Days)</label>
+            <input type="number" id="editTasks" step="1">
+        </div>
+        <div class="input-group">
+            <label>Work Hours (Last 7 Days)</label>
+            <input type="number" id="editHours" step="0.5">
+        </div>
+        <button onclick="saveEdit()" class="save-btn">Save Changes</button>
+        <button onclick="closeModal()" class="cancel-btn">Cancel</button>
+    </div>
+</div>
+
+<script src="scriptf.js"></script>
+</body>
+</html>
