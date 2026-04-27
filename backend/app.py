@@ -13,16 +13,21 @@ CORS(app)  # This allows frontend to call backend
 
 # Initialize Firebase (only once)
 # Check if running on Render (production) or local
-if os.environ.get('RENDER'):
-    # On Render, use environment variable for Firebase credentials
-    import json
-    firebase_credentials = json.loads(os.environ.get('FIREBASE_CREDENTIALS', '{}'))
-    cred = credentials.Certificate(firebase_credentials)
-else:
-    # Local development
-    cred = credentials.Certificate('firebase-key.json')
+import os
+import json
 
-firebase_admin.initialize_app(cred)
+if not firebase_admin._apps:
+    firebase_json = os.environ.get("FIREBASE_KEY")
+
+    if firebase_json:
+        # Running on Render
+        cred_dict = json.loads(firebase_json)
+        cred = credentials.Certificate(cred_dict)
+    else:
+        # Running locally
+        cred = credentials.Certificate('firebase-key.json')
+
+    firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 print("Firebase initialized successfully!")
