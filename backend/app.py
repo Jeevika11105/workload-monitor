@@ -9,7 +9,7 @@ import hashlib
 import os  # ADDED: for production port handling
 
 app = Flask(__name__)
-CORS(app)  # This allows frontend to call backend
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True) # This allows frontend to call backend
 
 # Initialize Firebase (only once)
 # Check if running on Render (production) or local
