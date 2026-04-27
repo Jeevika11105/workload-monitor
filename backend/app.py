@@ -6,14 +6,23 @@ import random
 import string
 from datetime import datetime
 import hashlib
+import os  # ADDED: for production port handling
 
 app = Flask(__name__)
 CORS(app)  # This allows frontend to call backend
 
 # Initialize Firebase (only once)
-if not firebase_admin._apps:
+# Check if running on Render (production) or local
+if os.environ.get('RENDER'):
+    # On Render, use environment variable for Firebase credentials
+    import json
+    firebase_credentials = json.loads(os.environ.get('FIREBASE_CREDENTIALS', '{}'))
+    cred = credentials.Certificate(firebase_credentials)
+else:
+    # Local development
     cred = credentials.Certificate('firebase-key.json')
-    firebase_admin.initialize_app(cred)
+
+firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 print("Firebase initialized successfully!")
@@ -63,6 +72,22 @@ def get_workload_level(score):
 @app.route('/api/test', methods=['GET'])
 def test():
     return jsonify({'message': 'Backend is working!'})
+
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({
+        'message': 'AI Workload Monitor API',
+        'status': 'running',
+        'endpoints': [
+            '/api/test',
+            '/api/auth/signup',
+            '/api/auth/login',
+            '/api/teams',
+            '/api/teams/join',
+            '/api/teams/<team_id>',
+            '/api/teams/<team_id>/members'
+        ]
+    })
 
 # ============= AUTHENTICATION ROUTES =============
 @app.route('/api/auth/signup', methods=['POST', 'OPTIONS'])
@@ -408,5 +433,12 @@ def delete_member(team_id, member_id):
         print(f"Delete member error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+# ============= HEALTH CHECK ROUTE (for Render) =============
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({'status': 'healthy'}), 200
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    # Get port from environment variable (for Render) or use 5000 for local
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
