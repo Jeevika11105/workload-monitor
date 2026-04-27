@@ -1,5 +1,5 @@
 // ============= CONFIGURATION =============
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://workload-monitor-2.onrender.com/';
 let authToken = null;
 let currentUser = null;
 let currentTeamId = null;
